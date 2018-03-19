@@ -1,0 +1,40 @@
+---
+title: "Electoral systems-score voting"
+author: "Xuhui Zhou"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##create the dataframe we need 
+
+```{r }
+a <- c(98, 12, 34, -35)
+b <- c(1, 0 , 99, 99)
+c <- c(-99, 34, 20, 99)
+d <- c(0,99, -12, 98)
+df <- data.frame(a,b,c,d)
+df
+```
+
+
+
+
+```{r }
+voting_score <- function(df, score_scale = 10)
+{
+  n <- score_scale+1
+  leap <- 200/n
+  df_rescale <- sapply((df+100)/leap, as.integer)
+  sum_df <- colSums(df_rescale)
+  cd_names <- names(which(max(sum_df)==sum_df))
+  return(cd_names)
+  
+}
+```
+
+##return the candidate(s) who win(s)
+```{r}
+voting_score(df, 4)
+```

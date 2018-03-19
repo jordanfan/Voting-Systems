@@ -1,0 +1,40 @@
+---
+title: "voting function winner_satisfaction_popular"
+author: "Jiaqi Guo"
+date: "10/8/2017"
+output: html_document
+---
+
+```{r}
+# Description: 
+# Input: dataframe (voting record), name of the winner (a string)
+# Return: the satisfaction score of the winner (integer), boolean that indicate if the winner is the most satisfied candidate base on his score 
+
+winner_satisfaction_popular <- function(df, winner){
+    if (!winner %in% colnames(df)){
+      return (c(0, 0))
+    }
+    winner_satisfaction = sum(df[ , winner])
+    max_satisfaction = max(apply(df, 2, sum))
+    if (winner_satisfaction == max_satisfaction)
+        popular <- TRUE
+    else popular <- FALSE
+    
+    c(winner_satisfaction, popular)
+    
+}
+
+
+# Test: 
+set.seed(1)
+A <- rnorm(100, mean = 0, sd = 10)
+B <- rnorm(100, mean = 0, sd = 9)
+C <- rnorm(100, mean = 0, sd = 25)
+df_test <- cbind(A, B, C)
+
+winner_satisfaction_popular(df_test, 'A')
+winner_satisfaction_popular(df_test, 'B')
+
+
+
+```

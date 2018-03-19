@@ -1,0 +1,38 @@
+---
+title: "pivot_prob"
+author: "Xuhui Zhou"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## making mius
+
+
+
+```{r }
+miu <- c(4, 10, 20)
+candidate <- c('John Doe','Peter Gynn','Jolie Hope')
+```
+
+## calculating pivot probability
+
+
+
+```{r }
+pivot_prob <- function(miu,candidate){
+  df <- data.frame(matrix(nrow = length(miu),ncol = length(miu)))
+  for (i in seq(1:length(candidate))){
+    df[i] <- abs(miu-miu[i])/200
+  }
+  colnames(df) <- candidate
+  return (df)
+}
+```
+
+```{r}
+pivot_prob(miu, candidate)
+```
+

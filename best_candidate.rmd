@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+author: "Kaushik Ravi"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+# 
+```{r}
+
+utility <- data.frame(matrix(c(7, 1, 3), nrow = 1, ncol = 3))
+colnames(utility)  <- c('A', 'B', 'C')
+rownames(utility)  <- c('I')
+
+print(utility)
+
+
+pivot <- data.frame(matrix(c(0, .2, .3, .2, 0, .5, .3, .5, 0), nrow = 3, ncol = 3))
+rownames(pivot)  <- c('A', 'B', 'C')
+colnames(pivot)  <- c('A', 'B', 'C')
+
+print(pivot)
+```
+
+# best_candidate for a specific voter
+```{r}
+
+library(nnet)
+#just finds the best candidate for one voter, can apply function to a matrix of a bunch of utility values later 
+best_candidate = function(utility, pivots){ 
+  n_candidates = ncol(pivots)
+  ratings = rep(0, n_candidates) 
+  #ratings tallies up the prospective rating for each candidate compared with another candidate multiplied with the pivot probability found in the pivots matrix 
+  for (i in 1:n_candidates){
+    for (j in 1:n_candidates){
+      ratings[i] = ratings[i] + (utility[i] - utility[j]) * pivots[i,j]
+    }
+  }
+  #winner = which.is.max(ratings)
+#  print(ratings)
+#  return(colnames(pivots)[winner])
+  ratings
+  }
+
+#best_candidate <- function(utilities, pivots){
+  
+#  num_cand <- ncol(pivots)
+#  candidates <- rep(0, num_cand)
+  
+#  for (k in 1:nrow(utilities)){
+#    df = data.frame(matrix(nrow = num_cand, ncol = num_cand))
+    
+#    for (i in 1:num_cand){
+#      for (j in 1:num_cand){
+        
+#        df[i,j] <- (utilities[k,i] - utilities[k,j])
+#        candidates[j] <- candidates[j] + (df[i,j]*pivots[i,j])
+        
+#      }
+#    }
+#    print(df)
+  
+#  }
+  
+#  print(candidates)
+#  win <- which.is.max(candidates)
+#  return (colnames(pivots)[win])
+#}
+```
+
+```{r}
+
+```
+
+#testing
+```{r}
+best_candidate(as.matrix(utility), pivot)
+````
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).

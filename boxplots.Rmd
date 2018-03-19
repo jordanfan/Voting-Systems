@@ -1,0 +1,79 @@
+---
+title: "Voting Result Graphs"
+author: "Jordan Fan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+voting_compare = function(candidate, m){
+  n_cand = length(candidate)
+  miu = matrix(sample(-100:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  theta = matrix(sample(0:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  df = data.frame(mapply(data_generator, miu, theta, candidate = candidate, n = m))
+  #create a large dataframe, each column contains simulated data from a specific normal curve with mean miu and sd theta 
+  m_function = function(x) { 
+    arr = rep(n_cand, n_cand)
+    decrease = c((n_cand - 1):0)
+    data.frame(df[, arr * x - decrease]) 
+  }
+  #function that splits dataframe by every nth column into a new dataframe 
+  
+  dataset = lapply(1:(ncol(df)/n_cand), m_function)
+  #list of all the split dataframes 
+
+  plurality_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, plurality))[2,]
+  #first applies plurality function to all the dataframes in the dataset, then applies the winner_satisfaction_popular function which gives the satisfaction score and whether the winner is the most satisfied candidate, then selects the second result
+  
+  runoff_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, runoff))[2,]
+  #same structure as plurality_result but with runoff
+  
+  borda_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, borda))[2,]
+  #same structure as plurality_result but with borda
+  
+  condorcet_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, condorcet))[2,]
+  #same structure as plurality_result but with condorcet
+  
+  scoring_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, voting_score))[2,]
+  #same structure as plurality_result but with scoring
+  
+  plurality_percent = sum(plurality_results)/m
+  runoff_percent = sum(runoff_results)/m
+  borda_percent = sum(borda_results)/m
+  condorcet_percent = sum(condorcet_results)/m
+  scoring_percent = sum(scoring_results)/m
+  c(plurality_percent, runoff_percent, borda_percent, condorcet_percent, scoring_percent)
+}
+```
+
+```{r}
+voting_compare(c("a","b","c"), 100)
+```
+
+```{r}
+voting_distributions = replicate(1000, voting_compare(candidate, 100))
+plurality_dist = voting_distributions[1,]
+runoff_dist = voting_distributions[2,]
+borda_dist = voting_distributions[3,]
+condorcet_dist = voting_distributions[4,]
+scoring_dist = voting_distributions[5,]
+
+voting_types = factor(c(rep("Plurality", length(plurality_dist)), rep("Runoff", length(runoff_dist)), rep("Borda", length(borda_dist)), rep("Condorcet", length(condorcet_dist)), rep("Scoring", length(scoring_dist))))
+
+dists = c(plurality_dist, runoff_dist, borda_dist, condorcet_dist, scoring_dist)
+
+x = data.frame(types = voting_types, accuracy = dists)
+ggplot(x, aes(x = types, y = accuracy, fill = types)) + geom_boxplot()
+```
+
+```{r}
+summary = data.frame("Plurality" = as.numeric(summary(plurality_dist)), "Runoff" = as.numeric(summary(runoff_dist)), "Borda" = as.numeric(summary(borda_dist)), "Condorcet" = as.numeric(summary(condorcet_dist)), "Scoring" = as.numeric(summary(scoring_dist)))
+rownames(summary) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary
+```
+
+

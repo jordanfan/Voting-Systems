@@ -1,0 +1,159 @@
+---
+title: "Plurality"
+author: "Kaushik Ravi"
+output: html_notebook
+---
+
+```{r}
+library(nnet)
+
+a <- matrix(c(1,0,6,5234,245,-3452,-52,-6,5235,262,3,-8), nrow=4, ncol=3)
+rownames(a) <- c('V1', 'V2', 'V3', 'V4')
+colnames(a) <- c('A', 'B', 'C')
+
+a
+
+#voter votes for candidate with highest utility value
+#sum 
+
+plurality <- function(df){
+  x = colnames(df)[max.col(df)]
+  #gives candidate with the max utility value for each row 
+  y = data.frame(table(x))
+  #creates a dataframe that has the candidate in the first column and the number of times it appeared in the second column  
+  indices = which(y$Freq == max(y$Freq))
+
+  if (length(indices) == 1){
+    return (y[indices,1])
+  }
+  else { 
+    return (y[sample(indices, 1), 1])
+    #If there is a tie, choose winner randomly 
+    }
+  
+  #numCol <- ncol(df)
+  #total <- vector(, numCol)
+  #votes <- vector(, numCol)
+  
+  #for (i in 1:length(total)){
+  #  total[i] <- 0
+  #  votes[i] <- 0
+  #}
+  
+  #for (r in 1:nrow(df)){
+  #  for (i in 1:length(votes)){
+  #    votes[i] <- df[r,i]
+  #  }
+  #  index <- which.is.max(votes)
+  #  total[index] <- total[index] + 1
+  #}
+  
+   #win <- which.is.max(total)
+  
+  # return (colnames(df)[win])
+}
+
+plurality(a)
+```
+
+```{r}
+a
+x = colnames(a)[max.col(a,ties.method = "first")]
+x
+```
+
+
+```{r}
+plurality_strategic = function(data, percent){
+  if (percent == 0){
+    return (plurality(data))
+  }
+  df = data 
+  samples = sample(nrow(data), floor(nrow(data) * percent))
+  strategic_voters = df[samples,]
+  df = df[-samples,]
+  pivots = pivot_prob(miu, colnames(data))
+  strategic_voter_ratings = t(apply(as.matrix(strategic_voters), 1, best_candidate, pivots = pivots))
+  colnames(strategic_voter_ratings) = colnames(df)
+  df = rbind(df, strategic_voter_ratings)
+  plurality(df)
+}
+plurality_strategic(data, 0)
+```
+
+```{r}
+plurality_strategic_votes = function(candidate, m, percent){
+  n_cand = length(candidate)
+  miu = matrix(sample(-100:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  theta = matrix(sample(0:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  df = data.frame(mapply(data_generator, miu, theta, candidate = candidate, n = m))
+  #create a large dataframe, each column contains simulated data from a specific normal curve with mean miu and sd theta 
+  m_function = function(x) { 
+    arr = rep(n_cand, n_cand)
+    decrease = c((n_cand - 1):0)
+    data.frame(df[, arr * x - decrease]) 
+  }
+  dataset = lapply(1:(ncol(df)/n_cand), m_function)
+  strategic_plurality_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, plurality_strategic, percent = percent))[2,]
+  sum(strategic_plurality_results)/m
+}
+
+plurality_strategic_votes(c("a","b","c"), 100, .2) 
+```
+
+```{r}
+plurality_strategic_CI_3_25 = replicate(1000, plurality_strategic_votes(c("a", "b","c"), 100, .25))
+plurality_strategic_CI_4_25 = replicate(1000, plurality_strategic_votes(c("a", "b","c", "d"), 100, .25))
+plurality_strategic_CI_5_25 = replicate(1000, plurality_strategic_votes(c("a", "b","c","d","e"), 100, .25))
+```
+
+```{r}
+plurality_strategic_CI_3_50 = replicate(1000, plurality_strategic_votes(c("a", "b","c"), 100, .5))
+plurality_strategic_CI_4_50 = replicate(1000, plurality_strategic_votes(c("a", "b","c", "d"), 100, .5))
+plurality_strategic_CI_5_50 = replicate(1000, plurality_strategic_votes(c("a", "b","c","d","e"), 100, .5))
+
+```
+
+```{r}
+plurality_strategic_CI_3_0 = replicate(1000, plurality_strategic_votes(c("a", "b","c"), 100, 0))
+plurality_strategic_CI_4_0 = replicate(1000, plurality_strategic_votes(c("a", "b","c", "d"), 100, 0))
+plurality_strategic_CI_5_0 = replicate(1000, plurality_strategic_votes(c("a", "b","c","d","e"), 100, 0))
+```
+
+```{r}
+strategic_percentages = factor(c(rep("0%", length(plurality_strategic_CI_3_0)), rep("25%", length(plurality_strategic_CI_3_25)), rep("50%", length(plurality_strategic_CI_3_50))))
+accuracy = c(plurality_strategic_CI_3_0, plurality_strategic_CI_3_25, plurality_strategic_CI_3_50)
+strategic_plurality_3_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy)
+ggplot(strategic_plurality_3_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_3_cands = data.frame("0%" = as.numeric(summary(plurality_strategic_CI_3_0)), "25%" = as.numeric(summary(plurality_strategic_CI_3_25)), "50%" = as.numeric(summary(plurality_strategic_CI_3_50)))
+rownames(summary_3_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_3_cands
+```
+
+```{r}
+accuracy_4 = c(plurality_strategic_CI_4_0, plurality_strategic_CI_4_25, plurality_strategic_CI_4_50)
+strategic_plurality_4_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy_4)
+ggplot(strategic_plurality_4_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_4_cands = data.frame("0%" = as.numeric(summary(plurality_strategic_CI_4_0)), "25%" = as.numeric(summary(plurality_strategic_CI_4_25)), "50%" = as.numeric(summary(plurality_strategic_CI_4_50)))
+rownames(summary_4_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_4_cands
+```
+
+```{r}
+accuracy_5 = c(plurality_strategic_CI_5_0, plurality_strategic_CI_5_25, plurality_strategic_CI_5_50)
+strategic_plurality_5_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy_5)
+ggplot(strategic_plurality_5_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_5_cands = data.frame("0%" = as.numeric(summary(plurality_strategic_CI_5_0)), "25%" = as.numeric(summary(plurality_strategic_CI_5_25)), "50%" = as.numeric(summary(plurality_strategic_CI_5_50)))
+rownames(summary_5_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_5_cands
+```
+

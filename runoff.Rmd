@@ -1,0 +1,136 @@
+---
+title: "Runoff Election Function"
+author: "Jordan Fan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data = data.frame("a" = runif(100, -100, 100), "b" = runif(100, -100, 100), "c" = runif(100, -100, 100), "d" = runif(100, -100, 100), "e" = runif(100, -100, 100))
+miu = c(10, 4, 8, -2, 0)
+
+```
+
+```{r}
+runoff = function(data) { 
+  df = data 
+  while (ncol(df) > 1) 
+    #while there's still more than 1 candidate 
+    {
+    ranked = t(apply(as.matrix(df), 1, rank))
+    #ranking each candidate for each voter 
+    sums = as.numeric(colSums(ranked)) 
+    #colsums gives the sums of each column and as.numeric changes the result into a vector 
+    min_index = which(sums == min(sums))
+    if (length(min_index) > 1){
+      min_index = sample(min_index, 1)
+    }
+    else {
+    }
+    #if there is a tie, choose index randomly 
+    df = df[-min_index] 
+    }
+  return(colnames(df))
+  }
+runoff(data)
+```
+
+```{r}
+runoff_strategic = function(data, percent){
+  if (percent == 0){
+    return (runoff(data))
+  }
+  df = data 
+  samples = sample(nrow(data), floor(nrow(data) * percent))
+  strategic_voters = df[samples,]
+  df = df[-samples,]
+  pivots = pivot_prob(miu, colnames(data))
+  strategic_voter_ratings = t(apply(as.matrix(strategic_voters), 1, best_candidate, pivots = pivots))
+  colnames(strategic_voter_ratings) = colnames(df)
+  df = rbind(df, strategic_voter_ratings)
+  runoff(df)
+}
+runoff_strategic(data, 0)
+```
+
+```{r}
+runoff_strategic_votes = function(candidate, m, percent){
+  n_cand = length(candidate)
+  miu = matrix(sample(-100:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  theta = matrix(sample(0:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  df = data.frame(mapply(data_generator, miu, theta, candidate = candidate, n = m))
+  #create a large dataframe, each column contains simulated data from a specific normal curve with mean miu and sd theta 
+  m_function = function(x) { 
+    arr = rep(n_cand, n_cand)
+    decrease = c((n_cand - 1):0)
+    data.frame(df[, arr * x - decrease]) 
+  }
+  dataset = lapply(1:(ncol(df)/n_cand), m_function)
+  strategic_runoff_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, runoff_strategic, percent = percent))[2,]
+  sum(strategic_runoff_results)/m
+}
+
+runoff_strategic_votes(c("a","b","c"), 100, .2) 
+```
+
+```{r}
+runoff_strategic_CI_3_25 = replicate(1000, runoff_strategic_votes(c("a", "b","c"), 100, .25))
+runoff_strategic_CI_4_25 = replicate(1000, runoff_strategic_votes(c("a", "b","c", "d"), 100, .25))
+runoff_strategic_CI_5_25 = replicate(1000, runoff_strategic_votes(c("a", "b","c","d","e"), 100, .25))
+
+```
+
+```{r}
+runoff_strategic_CI_3_50 = replicate(1000, runoff_strategic_votes(c("a", "b","c"), 100, .5))
+runoff_strategic_CI_4_50 = replicate(1000, runoff_strategic_votes(c("a", "b","c", "d"), 100, .5))
+runoff_strategic_CI_5_50 = replicate(1000, runoff_strategic_votes(c("a", "b","c","d","e"), 100, .5))
+
+```
+
+```{r}
+runoff_strategic_CI_3_0 = replicate(1000, runoff_strategic_votes(c("a", "b","c"), 100, 0))
+runoff_strategic_CI_4_0 = replicate(1000, runoff_strategic_votes(c("a", "b","c", "d"), 100, 0))
+runoff_strategic_CI_5_0 = replicate(1000, runoff_strategic_votes(c("a", "b","c","d","e"), 100, 0))
+```
+
+```{r}
+strategic_percentages = factor(c(rep("0%", length(runoff_strategic_CI_3_0)), rep("25%", length(runoff_strategic_CI_3_25)), rep("50%", length(runoff_strategic_CI_3_50))))
+accuracy = c(runoff_strategic_CI_3_0, runoff_strategic_CI_3_25, runoff_strategic_CI_3_50)
+strategic_runoff_3_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy)
+ggplot(strategic_runoff_3_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_3_cands = data.frame("0%" = as.numeric(summary(runoff_strategic_CI_3_0)), "25%" = as.numeric(summary(runoff_strategic_CI_3_25)), "50%" = as.numeric(summary(runoff_strategic_CI_3_50)))
+rownames(summary_3_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_3_cands
+```
+
+```{r}
+accuracy_4 = c(runoff_strategic_CI_4_0, runoff_strategic_CI_4_25, runoff_strategic_CI_4_50)
+strategic_runoff_4_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy_4)
+ggplot(strategic_runoff_4_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_4_cands = data.frame("0%" = as.numeric(summary(runoff_strategic_CI_4_0)), "25%" = as.numeric(summary(runoff_strategic_CI_4_25)), "50%" = as.numeric(summary(runoff_strategic_CI_4_50)))
+rownames(summary_4_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_4_cands
+```
+
+```{r}
+accuracy_5 = c(runoff_strategic_CI_5_0, runoff_strategic_CI_5_25, runoff_strategic_CI_5_50)
+strategic_runoff_5_cands = data.frame(percent_strategic = strategic_percentages, accuracy = accuracy_5)
+ggplot(strategic_runoff_5_cands, aes(x = percent_strategic, y = accuracy, fill = percent_strategic)) + geom_boxplot()
+```
+
+```{r}
+summary_5_cands = data.frame("0%" = as.numeric(summary(runoff_strategic_CI_5_0)), "25%" = as.numeric(summary(runoff_strategic_CI_5_25)), "50%" = as.numeric(summary(runoff_strategic_CI_5_50)))
+rownames(summary_5_cands) = c("min", "1st quartile", "median", "mean", "3rd quartile", "max")
+summary_5_cands
+```
+
+

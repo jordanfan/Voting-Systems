@@ -1,0 +1,86 @@
+---
+title: "scoring_strategic"
+author: "Xuhui Zhou"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+voting_score <- function(df,score_scale)
+{
+  n <- score_scale+1
+  leap <- 200/n
+  df_rescale <- sapply((df+100)/leap, as.integer)
+  sum_df <- colSums(df_rescale)
+  cd_names <- names(which(max(sum_df)==sum_df))
+  return(cd_names)
+}
+```
+
+
+```{r }
+scoring_strategic = function(data, percent){
+  df = data 
+  size = floor(nrow(data) * percent)
+  #print(size)
+  samples = sample(nrow(data), size)
+  strategic_voters = df[samples,]
+  df = df[-samples,]
+  pivots = pivot_prob(miu, colnames(data))
+  strategic_voter_ratings = t(apply(as.matrix(strategic_voters), 1, best_candidate, pivots = pivots))
+  colnames(strategic_voter_ratings) = colnames(df)
+  df = rbind(df, strategic_voter_ratings)
+  return(voting_score(df))
+}
+scoring_strategic(data, .2)
+
+```
+
+
+```{r pressure}
+score_voting_compare = function(candidate, m){
+  n_cand = length(candidate)
+  miu = matrix(sample(-100:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  theta = matrix(sample(0:100, m * n_cand, replace = TRUE), ncol = n_cand)
+  df = data.frame(mapply(data_generator, miu, theta, candidate = candidate, n = m))
+  #create a large dataframe, each column contains simulated data from a specific normal curve with mean miu and sd theta 
+  m_function = function(x) { 
+    arr = rep(n_cand, n_cand)
+    decrease = c((n_cand - 1):0)
+    data.frame(df[, arr * x - decrease]) 
+  }
+  #function that splits dataframe by every nth column into a new dataframe 
+  
+  dataset = lapply(1:(ncol(df)/n_cand), m_function)
+  #list of all the split dataframes 
+  scoring_results = mapply(winner_satisfaction_popular, dataset, lapply(dataset, voting_score))[2,]
+  #same structure as scoring_results but with scoring_strategic
+  scoring_results_0.25 = mapply(winner_satisfaction_popular, dataset, lapply(dataset, scoring_strategic, percent =0.25))[2,]
+  scoring_results_0.5 = mapply(winner_satisfaction_popular, dataset, lapply(dataset, scoring_strategic, percent=0.5))[2,]
+  
+  
+  scoring_percent = sum(scoring_results)/m
+  scoring_percent_0.25 = sum(scoring_results_0.25)/m
+  scoring_percent_0.5 = sum(scoring_results_0.5)/m
+  c(scoring_percent, scoring_percent_0.25, scoring_percent_0.5)
+}
+```
+
+```{r}
+library(ggplot2)
+voting_distributions =replicate(100,score_voting_compare(candidate, 50))
+
+scoring_dist = voting_distributions[1,]
+scoring_dist_0.25 = voting_distributions[2,]
+scoring_dist_0.5 = voting_distributions[3,]
+
+voting_types = factor(c(rep("scoring", length(scoring_dist)), rep("scoring_0.25", length(scoring_dist_0.25)), rep("scoring_0.5", length(scoring_dist_0.5))))
+dists = c(scoring_dist,scoring_dist_0.25,scoring_dist_0.5)
+
+x = data.frame(types = voting_types, accuracy = dists)
+ggplot(x, aes(x = types, y = accuracy, fill = types)) + geom_boxplot()
+```
+

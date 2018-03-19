@@ -1,0 +1,42 @@
+---
+title: "eletoral_system_data_generator"
+author: "Xuhui Zhou"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r }
+candidate <- c('A','B','C')
+miu <- c(-10 ,13, 5)
+theta <- c(10, 4 ,9)
+```
+
+
+```{r data generate}
+data_generator <- function(candidate, miu, theta, n = 100){
+  simulated_data = data.frame(mapply(rnorm, n = n, mean = miu, sd = theta))
+  colnames(simulated_data) = candidate
+  return (simulated_data)
+  #simulated_sample <- data.frame(matrix(ncol = length(candidate), nrow = n))
+  #for (i in seq(1:length(candidate))) {
+    
+  #  simulated_sample[i] <- rnorm(n, mean = miu[i], sd = theta[i])}
+  #colnames(simulated_sample) <- candidate
+  #return (simulated_sample)
+}
+
+```
+
+```{r show}
+data_generator(candidate, miu, theta, 200)
+
+```
+
+
+
+
+

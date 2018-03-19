@@ -1,0 +1,82 @@
+---
+title: "Untitled"
+author: "Peter Butler"
+date: ""
+output: 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+---
+<!-- Don't edit in between this line and the one below -->
+```{r include=FALSE}
+# Don't delete this chunk if you are using the DataComputing package
+library(DataComputing)
+```
+*Source file* 
+```{r, results='asis', echo=FALSE}
+includeSourceDocuments()
+```
+<!-- Don't edit the material above this line -->
+
+
+```{r}
+##some sample data
+
+
+x1 <- c(-10, 30, 45, 76, -30, -29, 80)
+x2 <- c(-2, 28, 51, 74, -60, 1, 99)
+x3 <- c(5, 35, 66, -20, -80, 0, 10)
+
+Elec1 <- data.frame(x1, x2, x3)
+colnames(Elec1) <- c("A","B","C")
+
+y1 <- c(3, -2, 20, 6, 42, 70, 5)
+y2 <- c(10, 58, -33, -2, 44, 80, 0)
+y3 <- c(11, 59, -30, 0, 41, 60, -2)
+Elec2 <- data.frame(y1, y1, y3)
+
+##Elec1 should return "B" for the winner
+##Elec2 should return no winner
+
+```
+
+
+```{r}
+condorcet <- function(x) {
+  n <- ncol(x)
+  m <- nrow(x)
+  v<- c()
+  
+  for (j in 1:(n-1)) {    ##Pairwise candidate contest
+    for (i in (j+1):n) {
+      if ((sum(x[,j]>x[,i])>(m/2))) {
+        v <- append(v,colnames(x)[j])
+      } else if ((sum(x[,i]>x[,j])>(m/2))) {
+        v <- append(v,colnames(x)[i])
+      }
+    }
+  }
+  
+  for (i in colnames(x)) {      ##Check if any candidate beats all others
+    if (sum(v==i) == n-1) {
+    return(i)
+      }
+  }
+  
+  
+    
+  return("no codorcet winner")
+  
+  }
+
+```
+
+
+Now to run some tests:
+
+```{r}
+condorcet(Elec1)
+condorcet(Elec2)
+```
+
+
